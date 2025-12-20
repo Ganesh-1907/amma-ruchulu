@@ -1,0 +1,29 @@
+# Node
+node_modules/
+
+# Env
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+
+# Builds
+dist/
+build/
+
+# Uploads
+uploads/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+node_modules/
+.env
+.env.*
+uploads/
+dist/
+build/
