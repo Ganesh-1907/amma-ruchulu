@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { products as productsApi } from '../services/api';
 import { mockProducts } from '../data/mockProducts';
 
-const BACKEND_URL = 'http://localhost:5000/';
+const BACKEND_URL = import.meta.env.VITE_API_URL;
 
 // Helper function to get image URL
 const getImageUrl = (img) => {

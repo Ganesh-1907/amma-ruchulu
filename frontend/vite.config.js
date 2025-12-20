@@ -18,7 +18,7 @@ export default defineConfig(({ command, mode }) => {
       host: '0.0.0.0', // This allows access from any device on the network
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:5000',
+          target: env.VITE_API_URL,
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, ''),

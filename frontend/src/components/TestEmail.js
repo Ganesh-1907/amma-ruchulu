@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Button, Card, Alert, Spinner, Form, Row, Col } from 'react-bootstrap';
 
 const TestEmail = () => {
+    const API_URL = import.meta.env.VITE_API_URL ;
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
@@ -28,7 +29,7 @@ const TestEmail = () => {
     useEffect(() => {
         const fetchRecentOrders = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/orders/recent');
+                const response = await axios.get(`${API_URL}/api/orders/recent`);
                 setRecentOrders(response.data.orders);
             } catch (err) {
                 console.error('Error fetching recent orders:', err);
@@ -68,7 +69,7 @@ const TestEmail = () => {
             setError(null);
             setResult(null);
 
-            const response = await axios.get('http://localhost:5000/api/test/test-email');
+            const response = await axios.get(`${API_URL}/api/test/test-email`);
             setResult(response.data);
         } catch (err) {
             setError(err.response?.data || { error: 'Failed to test email' });
