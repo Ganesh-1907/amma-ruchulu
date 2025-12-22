@@ -6,11 +6,15 @@ import { toast } from 'react-hot-toast';
 import { products as productsApi } from '../services/api';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL;
+
 const getImageUrl = (img) => {
   if (!img) return '/placeholder.png';
   if (img.startsWith('http')) return img;
-  // Remove any leading slashes and ensure proper path construction
-  return BACKEND_URL + img.replace(/^\/+/, '');
+
+  // remove trailing /api if present
+  const baseUrl = BACKEND_URL.replace(/\/api\/?$/, '');
+
+  return `${baseUrl}/${img.replace(/^\//, '')}`;
 };
 
 const ProductDetail = () => {

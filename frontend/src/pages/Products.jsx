@@ -12,10 +12,14 @@ const BACKEND_URL = import.meta.env.VITE_API_URL;
 const getImageUrl = (img) => {
   if (!img) return '/placeholder.png';
   if (img.startsWith('http')) return img;
-  // Ensure the path always starts with a slash before combining with BACKEND_URL
-  const cleanImgPath = img.startsWith('/') ? img : `/${img}`;
-  return BACKEND_URL + cleanImgPath.replace(/^\/+/, '');
+
+  // remove trailing /api if present
+  const baseUrl = BACKEND_URL.replace(/\/api\/?$/, '');
+
+  return `${baseUrl}/${img.replace(/^\//, '')}`;
 };
+
+
 
 // Image Modal Component
 const ImageModal = ({ isOpen, onClose, product, quantities, handleQuantityChange, handleAddToCart, categories }) => {
@@ -204,6 +208,8 @@ const Products = () => {
           return b.reviews - a.reviews;
       }
     });
+
+    console.log(filteredProducts , 'ganesh')
 
   useEffect(() => {
     const fetchProducts = async () => {
