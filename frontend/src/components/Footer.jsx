@@ -81,21 +81,49 @@ const Footer = () => {
             <h4 className="text-lg font-semibold mb-4">Contact Us</h4>
             <ul className="space-y-4 text-left">
               <li className="flex items-start space-x-3">
-                <span>
-                   <svg className="w-5 h-5 text-primary-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                </span>
-                <span>4-7-62/2, Shivaji nagar, Attapur, Hyderabad, Telangana 500048</span>
-              </li>
+  <span>
+    <svg
+      className="w-5 h-5 text-primary-400 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+      />
+    </svg>
+  </span>
+
+  <a
+    href="https://maps.google.com/maps?q=16.2681083%2C80.3582567&z=17&hl=en"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="hover:underline cursor-pointer"
+  >
+    <div className="leading-relaxed">
+      <p className="font-medium">PS Sweets & Mart</p>
+      <p>Naidu Peta, Potturu</p>
+      <p>Andhra Pradesh – 522005</p>
+    </div>
+  </a>
+</li>
+
               <li className="flex items-start space-x-3">
                 <span>
                    <svg className="w-5 h-5 text-primary-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
                 </span>
-                <span>+91 9701555435</span>
+                <span>+91 9121942070</span>
               </li>
               <li className="flex items-start space-x-3">
                 <span> <svg className="w-5 h-5 text-primary-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
