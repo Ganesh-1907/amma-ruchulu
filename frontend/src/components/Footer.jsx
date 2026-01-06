@@ -110,7 +110,7 @@ const Footer = () => {
     className="hover:underline cursor-pointer"
   >
     <div className="leading-relaxed">
-      <p className="font-medium">PS Sweets & Mart</p>
+      <p className="font-medium">Ma amma ruchulu</p>
       <p>Naidu Peta, Potturu</p>
       <p>Andhra Pradesh – 522005</p>
     </div>

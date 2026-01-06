@@ -55,21 +55,21 @@ const Contact = () => {
   const contactInfo = [
     {
       icon: (
-        <img 
-          src="https://cdn-icons-png.flaticon.com/512/126/126341.png" 
-          alt="Phone" 
+        <img
+          src="https://cdn-icons-png.flaticon.com/512/126/126341.png"
+          alt="Phone"
           className="w-6 h-6"
         />
       ),
       title: 'Phone',
-      content: '+91 970-155-5435',
-      link: 'tel:+919701555435'
+      content: '+91 912-194-2070',
+      link: 'tel:+919121942070'
     },
     {
       icon: (
-        <img 
-          src="https://cdn-icons-png.flaticon.com/512/3178/3178158.png" 
-          alt="Email" 
+        <img
+          src="https://cdn-icons-png.flaticon.com/512/3178/3178158.png"
+          alt="Email"
           className="w-6 h-6"
         />
       ),
@@ -79,27 +79,27 @@ const Contact = () => {
     },
     {
       icon: (
-        <img 
-          src="https://cdn-icons-png.flaticon.com/512/2776/2776067.png" 
-          alt="Address" 
+        <img
+          src="https://cdn-icons-png.flaticon.com/512/2776/2776067.png"
+          alt="Address"
           className="w-6 h-6"
         />
       ),
       title: 'Address',
-      content: '4-7-62/2, Shivaji nagar, Attapur, Hyderabad-500048',
+      content: 'Ma amma ruchulu , Naidu Peta, Potturu, Andhra Pradesh – 522005',
       link: 'https://maps.app.goo.gl/BV9XeQPSCLEXyyky7'
     },
     {
       icon: (
-        <img 
-          src="https://cdn-icons-png.flaticon.com/512/733/733585.png" 
-          alt="WhatsApp" 
+        <img
+          src="https://cdn-icons-png.flaticon.com/512/733/733585.png"
+          alt="WhatsApp"
           className="w-6 h-6"
         />
       ),
       title: 'WhatsApp',
       content: 'Chat with us on WhatsApp',
-      link: 'https://wa.me/919701555435'
+      link: 'https://wa.me/919121942070'
     }
   ];
 
@@ -108,7 +108,7 @@ const Contact = () => {
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           {/* Header Section */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -122,7 +122,7 @@ const Contact = () => {
           </motion.div>
 
           {/* Main Content */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -130,7 +130,7 @@ const Contact = () => {
           >
             <div className="grid grid-cols-1 gap-8 justify-items-center">
               {/* Contact Information */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
@@ -139,7 +139,7 @@ const Contact = () => {
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">Get in Touch</h2>
                 <div className="space-y-4">
                   {contactInfo.map((info, index) => (
-                    <motion.div 
+                    <motion.div
                       key={index}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -165,7 +165,7 @@ const Contact = () => {
               </motion.div>
 
               {/* Contact Form */}
-              
+
             </div>
 
             {/* Map Section */}
@@ -176,22 +176,25 @@ const Contact = () => {
               className="mt-12"
             >
               <h2 className="text-2xl font-semibold text-gray-900 mb-6">Our Location</h2>
+
               <div className="relative rounded-xl overflow-hidden h-96 shadow-md">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3888.0076939999997!2d77.5946143!3d12.9715987!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae1670c9b44e6d%3A0xf8dfc3e8517e4fe0!2sBangalore%20Palace!5e0!3m2!1sen!2sin!4v1647851234567!5m2!1sen!2sin"
+                  src="https://www.google.com/maps?q=16.2681083,80.3582567&z=17&output=embed"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
-                  allowFullScreen=""
+                  allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   className="absolute inset-0"
                 ></iframe>
+
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
               </div>
+
               <div className="mt-4 flex items-center justify-center space-x-4">
                 <a
-                  href="https://maps.google.com/?q=123+Dairy+Street,+Milk+Colony,+City+-+123456"
+                  href="https://maps.google.com/maps?q=16.2681083,80.3582567&z=17&hl=en"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -204,6 +207,7 @@ const Contact = () => {
                 </a>
               </div>
             </motion.div>
+
           </motion.div>
         </div>
       </div>
