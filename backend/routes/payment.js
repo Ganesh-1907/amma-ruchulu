@@ -71,24 +71,26 @@ router.post('/verify-payment', authenticateToken, async (req, res) => {
       console.log("inside if before order creation")
       console.log("order data", orderData)
       // Create order in database
-      const order = new Order({
-        user: req.user.id,
-        items: orderData.items.map(item => ({
-          product: item.product._id || item.product,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        totalAmount: orderData.totalAmount,
-        address: orderData.address,
-        deliveryDate: orderData.deliveryDate,
-        deliveryTime: orderData.deliveryTime,
-        paymentId: razorpay_payment_id,
-        orderId: razorpay_order_id,
-        status: 'confirmed',
-        paymentStatus: 'Paid'
-      });
+     const order = new Order({
+  user: req.user.id,
+  items: orderData.items.map(item => ({
+    product: item.product._id || item.product,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    totalPrice: item.totalPrice
+  })),
+  totalAmount: orderData.totalAmount,
+  address: orderData.address,
+  deliveryDate: orderData.deliveryDate,
+  deliveryTime: orderData.deliveryTime,
+  paymentId: razorpay_payment_id,
+  orderId: razorpay_order_id,
+  status: 'confirmed',
+  paymentStatus: 'Paid'
+});
 
-      await order.save();
+await order.save();
+
 
       res.json({
         success: true,

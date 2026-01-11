@@ -1,25 +1,51 @@
-const Order = require('../models/Order');
-const User = require('../models/User');
-const Product = require('../models/Product');
-const crypto = require('crypto');
-const Razorpay = require('razorpay');
-const { sendOrderConfirmationToUser, sendOrderNotificationToAdmin } = require('../utils/emailService');
+const Order = require("../models/Order");
+const User = require("../models/User");
+const Product = require("../models/Product");
+const crypto = require("crypto");
+const Razorpay = require("razorpay");
+const {
+  sendOrderConfirmationToUser,
+  sendOrderNotificationToAdmin,
+} = require("../utils/emailService");
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
+
+const decreaseProductStock = async (order) => {
+  for (const item of order.items) {
+    const product = await Product.findById(item.product);
+    if (!product) continue;
+
+    const priceEntry = product.prices.find(
+      (p) => p.weight === item.selectedWeight
+    );
+
+    if (!priceEntry) continue;
+
+    // 🔻 decrease stock
+    priceEntry.stock = Math.max(
+      0,
+      Number(priceEntry.stock) - Number(item.quantity)
+    );
+
+    await product.save();
+  }
+};
+
+
 // Get all orders for a user
 exports.getUserOrders = async (req, res) => {
   try {
     const orders = await Order.find({ user: req.user.id })
-    .populate('user', 'name email phone')
-    .populate('items.product')
+      .populate("user", "name email phone")
+      .populate("items.product")
       .sort({ createdAt: -1 });
-    
+
     res.json(orders);
   } catch (error) {
-    console.error('Error fetching user orders:', error);
-    res.status(500).json({ error: 'Error fetching orders' });
+    console.error("Error fetching user orders:", error);
+    res.status(500).json({ error: "Error fetching orders" });
   }
 };
 
@@ -27,160 +53,151 @@ exports.getUserOrders = async (req, res) => {
 exports.getOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
-      .populate('items.product')
-      .populate('user', 'name email phone');
-    
+      .populate("items.product")
+      .populate("user", "name email phone");
+
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ error: "Order not found" });
     }
-    
+
     // Return the complete order object including payment status
     res.json({
       order: {
         ...order.toObject(),
-        paymentStatus: order.paymentStatus
-      }
+        paymentStatus: order.paymentStatus,
+      },
     });
   } catch (error) {
-    console.error('Error fetching order:', error);
-    res.status(500).json({ error: 'Error fetching order' });
+    console.error("Error fetching order:", error);
+    res.status(500).json({ error: "Error fetching order" });
   }
 };
 
 // Create a new order
 exports.createOrder = async (req, res) => {
-    try {
-        const { items, address, deliveryDate, deliveryTime , paymentStatus, amount, currency = 'INR', receipt} = req.body;
-        console.log("items", items);
-        const userId = req.user._id;
-        // Create the order
-        const order = new Order({
-            user: userId,
-            items,
-            address,
-            deliveryDate,
-            deliveryTime,
-            totalAmount: items?.reduce((total, item) => total + (item.price * item.quantity), 0),
-            status: 'pending',
-            paymentStatus
-        });
-        await order.save();
-        console.log("the saved order", order);
+  try {
+    const {
+      items,
+      address,
+      deliveryDate,
+      deliveryTime,
+      paymentStatus,
+      paymentMethod
+    } = req.body;
 
-        // Populate user and product details for email
-        const populatedOrder = await Order.findById(order._id)
-            .populate('user', 'email name')
-            .populate('items.product', 'name');
-
-        if (!populatedOrder) {
-            throw new Error('Failed to populate order details');
-        }
-        console.log("after populating the order");
-        // Format address for email
-        const formattedAddress = `
-${order.address.street}
-${order.address.city}, ${order.address.state}
-PIN: ${order.address.pincode}
-        `.trim();
-        console.log("after formatting the address");
-        // Prepare order details for email
-        const orderDetails = {
-            orderId: order._id,
-            orderDate: order.createdAt,
-            items: order.items.map(item => ({
-                name: item.name,
-                quantity: item.quantity,
-                price: item.price
-            })),
-            totalAmount: order.totalAmount,
-            userEmail: populatedOrder.user.email,
-            userName: populatedOrder.user.name,
-            address: formattedAddress,
-            deliveryDate: order.deliveryDate,
-            deliveryTime: order.deliveryTime,
-            paymentStatus: order.paymentStatus
-        };
-
-        console.log('Sending order confirmation emails...');
-        console.log('Order Details:', JSON.stringify(orderDetails, null, 2));
-
-        try {
-            // Send confirmation email to user
-            const userEmailResult = await sendOrderConfirmationToUser(populatedOrder.user.email, orderDetails);
-            console.log('User email sent successfully:', userEmailResult.messageId);
-
-            // Send notification email to admin
-            const adminEmailResult = await sendOrderNotificationToAdmin(orderDetails);
-            console.log('Admin email sent successfully:', adminEmailResult.messageId);
-
-            res.status(201).json({
-                success: true,
-                message: 'Order created successfully and confirmation emails sent',
-                order: {
-                    _id: order._id,
-                    items: order.items,
-                    totalAmount: order.totalAmount,
-                    deliveryDate: order.deliveryDate,
-                    deliveryTime: order.deliveryTime,
-                    status: order.status
-                },
-                emailStatus: {
-                    userEmailSent: true,
-                    adminEmailSent: true
-                }
-            });
-            // const order = await razorpay.orders.create({
-            //         amount: amount * 100, // Razorpay expects amount in paise
-            //         currency,
-            //         receipt,
-            //         payment_capture: 1 
-            //       });
-              
-            //       res.json({
-            //         orderId: order.id,
-            //         amount: order.amount,
-            //         currency: order.currency
-            //       });
-        } catch (emailError) {
-            console.error('Error sending emails:', emailError);
-            // Still return success for order creation, but indicate email failure
-            res.status(201).json({
-                success: true,
-                message: 'Order created successfully but email sending failed',
-                order: {
-                    _id: order._id,
-                    items: order.items,
-                    totalAmount: order.totalAmount,
-                    deliveryDate: order.deliveryDate,
-                    deliveryTime: order.deliveryTime,
-                    status: order.status
-                },
-                emailStatus: {
-                    error: emailError.message
-                }
-            });
-        }
-    } catch (error) {
-        console.error('Error creating order:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to create order: ' + error.message
-        });
+    // 🔐 basic validation
+    if (!items || !items.length) {
+      return res.status(400).json({ error: "Order items are required" });
     }
+
+    if (!address) {
+      return res.status(400).json({ error: "Delivery address is required" });
+    }
+
+    const userId = req.user._id;
+
+    // ✅ CREATE ORDER
+    const order = new Order({
+      user: userId,
+      items,
+      address,
+      deliveryDate,
+      deliveryTime,
+
+      // 🔥 totalAmount from totalPrice (NO NaN)
+      totalAmount: items.reduce(
+        (sum, item) => sum + Number(item.totalPrice),
+        0
+      ),
+
+      status: "pending",
+      paymentMethod: paymentMethod || "COD",
+      paymentStatus: paymentStatus || "Pending",
+    });
+
+    await order.save();
+
+    // ✅ Populate for emails
+    const populatedOrder = await Order.findById(order._id)
+      .populate("user", "email name")
+      .populate("items.product", "name");
+
+    if (!populatedOrder) {
+      throw new Error("Failed to populate order details");
+    }
+
+    // ✅ Format address
+    const formattedAddress = `
+${address.street}
+${address.city}, ${address.state}
+PIN: ${address.pincode}
+    `.trim();
+
+    // ✅ Email payload (CORRECT)
+    const orderDetails = {
+      orderId: order._id,
+      orderDate: order.createdAt,
+      items: order.items.map(item => ({
+        name: item.product?.name,
+        quantity: item.quantity,
+        price: item.totalPrice
+      })),
+      totalAmount: order.totalAmount,
+      userEmail: populatedOrder.user.email,
+      userName: populatedOrder.user.name,
+      address: formattedAddress,
+      deliveryDate,
+      deliveryTime,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus
+    };
+
+    // 📧 Send emails
+    await sendOrderConfirmationToUser(
+      populatedOrder.user.email,
+      orderDetails
+    );
+
+    await sendOrderNotificationToAdmin(orderDetails);
+
+    // ✅ FINAL RESPONSE
+    return res.status(201).json({
+      success: true,
+      message: "Order created successfully",
+      order: {
+        _id: order._id,
+        items: order.items,
+        totalAmount: order.totalAmount,
+        deliveryDate,
+        deliveryTime,
+        status: order.status,
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus
+      }
+    });
+
+  } catch (error) {
+    console.error("Error creating order:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to create order: " + error.message
+    });
+  }
 };
+
 
 // Get all orders (admin)
 exports.getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
-      .populate('items.product')
-      .populate('user', 'name email phone')
+      .populate("items.product")
+      .populate("user", "name email phone")
       .sort({ createdAt: -1 });
-    
+
     res.json(orders);
   } catch (error) {
-    console.error('Error fetching all orders:', error);
-    res.status(500).json({ error: 'Error fetching orders' });
+    console.error("Error fetching all orders:", error);
+    res.status(500).json({ error: "Error fetching orders" });
   }
 };
 
@@ -190,75 +207,89 @@ exports.updateOrderStatus = async (req, res) => {
     const { status } = req.body;
     const { id } = req.params;
 
-    // Validate status
-    const validStatuses = ['pending', 'confirmed','out_for_delivery', 'delivered', 'cancelled'];
+    const validStatuses = [
+      "pending",
+      "confirmed",
+      "out_for_delivery",
+      "delivered",
+      "cancelled",
+    ];
+
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
+      return res.status(400).json({ error: "Invalid status" });
     }
 
-    // Update order with new status and payment status
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate("items.product");
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ error: "Order not found" });
     }
 
-    const updateData = {
-      status,
-      // Only update payment status to paid if it's a cash on delivery order
-      paymentStatus: status === 'delivered' && !order.paymentId ? 'Paid' : order.paymentStatus
-    };
+    const wasDelivered = order.status === "delivered";
 
-    const updatedOrder = await Order.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true }
-    ).populate('items.product').populate('user', 'name email phone');
+    // 🔥 STOCK REDUCTION (ONLY ONCE)
+    if (!wasDelivered && status === "delivered") {
+      await decreaseProductStock(order);
 
-    if (!updatedOrder) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-
-    // Return the complete order object including payment status
-    res.json({
-      order: {
-        ...updatedOrder.toObject(),
-        paymentStatus: updatedOrder.paymentStatus
+      // COD → mark paid
+      if (order.paymentMethod === "COD") {
+        order.paymentStatus = "Paid";
       }
+    }
+
+    order.status = status;
+    await order.save();
+
+    const updatedOrder = await Order.findById(id)
+      .populate("items.product")
+      .populate("user", "name email phone");
+
+    res.json({
+      order: updatedOrder,
     });
   } catch (error) {
-    console.error('Error updating order status:', error);
-    res.status(500).json({ error: 'Error updating order status' });
+    console.error("Error updating order status:", error);
+    res.status(500).json({ error: "Error updating order status" });
   }
 };
+
+
 
 // Verify delivery OTP
 exports.verifyDeliveryOTP = async (req, res) => {
   try {
-    const { orderId, otp } = req.body;
+    const { orderId } = req.body;
 
     const order = await Order.findOne({
       _id: orderId,
-      user: req.user.id
-    });
+      user: req.user.id,
+    }).populate("items.product");
 
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ error: "Order not found" });
     }
 
-    if (order.otp !== otp) {
-      return res.status(400).json({ error: 'Invalid OTP' });
+    // 🔥 ONLY IF NOT ALREADY DELIVERED
+    if (order.status !== "delivered") {
+      await decreaseProductStock(order);
+
+      if (order.paymentMethod === "COD") {
+        order.paymentStatus = "Paid";
+      }
+
+      order.status = "delivered";
+      await order.save();
     }
 
-    // Update order status to delivered
-    order.status = 'delivered';
-    await order.save();
-
-    res.json({ message: 'Delivery verified successfully' });
+    res.json({ success: true, message: "Order delivered successfully" });
   } catch (error) {
-    console.error('Error verifying delivery OTP:', error);
-    res.status(500).json({ error: 'Error verifying delivery OTP' });
+    console.error("OTP verify error:", error);
+    res.status(500).json({ error: "Delivery verification failed" });
   }
 };
+
+
+
+
 
 // Cancel order
 exports.cancelOrder = async (req, res) => {
@@ -267,36 +298,47 @@ exports.cancelOrder = async (req, res) => {
 
     const order = await Order.findOne({
       _id: id,
-      user: req.user.id
+      user: req.user.id,
     });
 
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ error: "Order not found" });
     }
 
-    // Check if order can be cancelled
-    if (['delivered', 'cancelled'].includes(order.status)) {
-      return res.status(400).json({ error: 'Order cannot be cancelled' });
+    if (["delivered", "cancelled"].includes(order.status)) {
+      return res.status(400).json({ error: "Order cannot be cancelled" });
     }
 
-    // Update order status
-    order.status = 'cancelled';
+    // ✅ Update order status
+    order.status = "cancelled";
+
+    // ✅ Payment status handling (ENUM SAFE)
+    if (order.paymentMethod === "Online") {
+      if (order.paymentStatus === "Paid") {
+        order.paymentStatus = "Refund Pending";
+      }
+    } else if (order.paymentMethod === "COD") {
+      order.paymentStatus = "Failed";
+    }
+
     await order.save();
 
-    // Restore product stock
-    for (const item of order.items) {
-      await Product.findByIdAndUpdate(
-        item.product,
-        { $inc: { stock: item.quantity } }
-      );
-    }
-
-    res.json({ message: 'Order cancelled successfully' });
+    return res.json({
+      success: true,
+      message: "Order cancelled successfully",
+      order: {
+        _id: order._id,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+      },
+    });
   } catch (error) {
-    console.error('Error cancelling order:', error);
-    res.status(500).json({ error: 'Error cancelling order' });
+    console.error("Error cancelling order:", error);
+    return res.status(500).json({ error: "Error cancelling order" });
   }
 };
+
+
 
 // Get order statistics (for admin)
 exports.getOrderStats = async (req, res) => {
@@ -304,33 +346,33 @@ exports.getOrderStats = async (req, res) => {
     const stats = await Order.aggregate([
       {
         $group: {
-          _id: '$status',
+          _id: "$status",
           count: { $sum: 1 },
-          totalAmount: { $sum: '$totalAmount' }
-        }
-      }
+          totalAmount: { $sum: "$totalAmount" },
+        },
+      },
     ]);
 
     const totalOrders = await Order.countDocuments();
     const totalRevenue = await Order.aggregate([
       {
-        $match: { status: { $ne: 'cancelled' } }
+        $match: { status: { $ne: "cancelled" } },
       },
       {
         $group: {
           _id: null,
-          total: { $sum: '$totalAmount' }
-        }
-      }
+          total: { $sum: "$totalAmount" },
+        },
+      },
     ]);
 
     res.json({
       stats,
       totalOrders,
-      totalRevenue: totalRevenue[0]?.total || 0
+      totalRevenue: totalRevenue[0]?.total || 0,
     });
   } catch (error) {
-    console.error('Error fetching order stats:', error);
-    res.status(500).json({ error: 'Error fetching order statistics' });
+    console.error("Error fetching order stats:", error);
+    res.status(500).json({ error: "Error fetching order statistics" });
   }
-}; 
+};

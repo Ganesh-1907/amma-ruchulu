@@ -7,24 +7,31 @@ const orderSchema = new mongoose.Schema({
     required: true
   },
   items: [{
-    product: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product',
-      required: true
-    },
-    name: {
-      type: String,
-    },
-    quantity: {
-      type: Number,
-      required: true,
-      min: 1
-    },
-    price: {
-      type: Number,
-      required: true
-    }
-  }],
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true
+  },
+  name: String,
+
+  selectedWeight: String,
+
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1
+  },
+
+  unitPrice: {
+    type: Number,
+    required: true
+  },
+
+  totalPrice: {
+    type: Number,
+    required: true
+  }
+}],
   totalAmount: {
     type: Number,
     required: true
@@ -60,10 +67,10 @@ const orderSchema = new mongoose.Schema({
   
   
   paymentStatus: {
-    type: String,
-    enum: ['Pending', 'Paid', 'failed'],
-    default: 'Paid',
-  },
+  type: String,
+  enum: ['Pending', 'Paid', 'Failed', 'Refund Pending'],
+  default: 'Pending',
+},
   
   deliveryAddress: {
     street: String,

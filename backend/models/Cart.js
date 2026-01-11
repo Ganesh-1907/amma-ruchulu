@@ -6,12 +6,30 @@ const cartItemSchema = new mongoose.Schema({
     ref: 'Product',
     required: true
   },
+
+  selectedWeight: {
+    type: String,
+    required: true,
+    enum: ['250g', '500g', '1kg']
+  },
+
+  unitPrice: {
+    type: Number,
+    required: true
+  },
+
   quantity: {
     type: Number,
     required: true,
     min: 1
+  },
+
+  totalPrice: {
+    type: Number,
+    required: true
   }
 });
+
 
 const cartSchema = new mongoose.Schema({
   user: {

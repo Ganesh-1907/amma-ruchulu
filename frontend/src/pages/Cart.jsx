@@ -10,12 +10,17 @@ import { BACKEND_URL } from '../config';
 
 const getImageUrl = (img) => {
   if (!img) return '/placeholder.png';
-  return img.startsWith('http') ? img : BACKEND_URL + img.replace(/^\/+/, '');
+
+  if (img.startsWith('http')) return img;
+
+  // ensure slash between backend and uploads
+  return `${BACKEND_URL.replace(/\/api$/, '')}/${img.replace(/^\/+/, '')}`;
 };
+
 
 const Cart = () => {
   const navigate = useNavigate();
-  const { cart, loading: cartLoading, error: cartError, initialized, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { cart,  loading: cartLoading, error: cartError, initialized, updateQuantity, removeFromCart, clearCart } = useCart();
   const { addresses, selectedAddress, loading: addressLoading, selectAddress } = useAddress();
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [selectedDeliveryDate, setSelectedDeliveryDate] = useState('');
@@ -30,12 +35,27 @@ const Cart = () => {
   }, [cartLoading]);
 
   // Calculate cart totals with null checks
-  const subtotal = cart?.reduce((total, item) => {
-    if (!item || !item.product?.price || !item.quantity) return total;
-    return total + (item.product.price * item.quantity);
+  const subtotal =
+  cart?.reduce((total, item) => {
+    if (!item) return total;
+
+    const unitPrice = Number(item.unitPrice) || 0;
+    const quantity = Number(item.quantity) || 0;
+
+    const itemTotal =
+      Number(item.totalPrice) || unitPrice * quantity;
+
+    return total + itemTotal;
   }, 0) || 0;
 
-  const total = subtotal;
+const total = subtotal;
+
+
+useEffect(() => {
+  console.log("🛒 FULL CART DATA:", cart);
+}, [cart]);
+
+
 
   // Get available delivery dates (next 7 days)
   const getDeliveryDates = () => {
@@ -244,7 +264,10 @@ const Cart = () => {
                         <div className="flex items-center justify-between gap-4">
                           <h3 className="text-lg font-medium text-gray-900 truncate flex-1">{item?.product?.name}</h3>
                           <div className="flex items-center gap-2">
-                            <p className="text-lg font-medium text-gray-900">₹{item?.product?.price * item.quantity}</p>
+                            <p className="text-lg font-medium text-gray-900">
+  ₹{Number(item.totalPrice) || Number(item.unitPrice) * Number(item.quantity)}
+</p>
+
                             <button
                               onClick={() => handleRemoveItem(item._id)}
                               disabled={isLoading}
@@ -255,7 +278,10 @@ const Cart = () => {
                             </button>
                           </div>
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">₹{item?.product?.price} per {item?.product?.unit || 'item'}</p>
+                        <p className="mt-1 text-sm text-gray-500">
+  ₹{Number(item.unitPrice) || 0} per {item.selectedWeight}
+</p>
+
                         <div className="mt-4 flex items-center gap-2">
                           <button
                             onClick={() => handleQuantityChange(item._id, item.quantity - 1)}

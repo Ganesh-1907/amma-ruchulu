@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import adminApi from "../services/api";
 
-const API_URL = import.meta.env.VITE_API_URL ;
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -10,32 +10,34 @@ const Products = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const toastShownRef = useRef(false);
+
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    price: "",
-    // category: 'milk',
-    category: "shop all",
+    category: "Shop all",
 
-    stock: "",
-    unit: "",
+    prices: [
+      { weight: "250g", price: "", stock: "" },
+      { weight: "500g", price: "", stock: "" },
+      { weight: "1kg", price: "", stock: "" },
+    ],
+
     images: [],
     imagePreviews: [],
+
     discount: 0,
     isDiscountActive: false,
     discountStartDate: "",
     discountEndDate: "",
-    offerPrice: "",
-    offerStartDate: "",
-    offerEndDate: "",
-    isOfferActive: false,
   });
 
   // const CATEGORIES = ['milk', 'curd', 'butter', 'ghee', 'cheese', 'other'];
 
   //CAPITAL LETTERS
   const CATEGORIES = [
-    "Shop all",
     "Veg pickles",
     "Non veg pickles",
     "Sweets",
@@ -136,12 +138,19 @@ const Products = () => {
     try {
       const formDataToSend = new FormData();
 
-      // Append all form fields
-      Object.keys(formData).forEach((key) => {
-        if (key !== "images" && key !== "imagePreviews") {
-          formDataToSend.append(key, formData[key]);
-        }
-      });
+      // Basic fields
+      formDataToSend.append("name", formData.name);
+      formDataToSend.append("description", formData.description);
+      formDataToSend.append("category", formData.category);
+
+      // Prices (IMPORTANT: send as JSON)
+      formDataToSend.append("prices", JSON.stringify(formData.prices));
+
+      // Discount
+      formDataToSend.append("discount", formData.discount);
+      formDataToSend.append("isDiscountActive", formData.discount > 0);
+      formDataToSend.append("discountStartDate", formData.discountStartDate);
+      formDataToSend.append("discountEndDate", formData.discountEndDate);
 
       // Append all new images
       formData.images.forEach((image, index) => {
@@ -178,32 +187,36 @@ const Products = () => {
     }
   };
 
-  const handleEdit = async (product) => {
-    try {
-      setEditingProductId(product._id);
-      setFormData({
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        category: product.category,
-        stock: product.stock,
-        unit: product.unit,
-        images: [],
-        imagePreviews: product.images.map((image) => getImageUrl(image)),
-        discount: product.discount || 0,
-        isDiscountActive: product.isDiscountActive || false,
-        discountStartDate: product.discountStartDate || "",
-        discountEndDate: product.discountEndDate || "",
-        offerPrice: product.offerPrice || "",
-        offerStartDate: product.offerStartDate || "",
-        offerEndDate: product.offerEndDate || "",
-        isOfferActive: product.isOfferActive || false,
-      });
-      setIsModalOpen(true);
-    } catch (error) {
-      console.error("Failed to load product for editing:", error);
-      toast.error("Failed to load product for editing");
-    }
+  const handleEdit = (product) => {
+    setEditingProductId(product._id);
+
+    setFormData({
+      name: product.name,
+      description: product.description,
+      category: product.category,
+
+      prices: product.prices.map((p) => ({
+        weight: p.weight,
+        price: p.price,
+        stock: p.stock,
+      })),
+
+      images: [],
+      imagePreviews: product.images.map((img) => getImageUrl(img)),
+
+      discount: product.discount || 0,
+      isDiscountActive: product.discount > 0,
+
+      discountStartDate: product.discountStartDate
+        ? product.discountStartDate.split("T")[0]
+        : "",
+
+      discountEndDate: product.discountEndDate
+        ? product.discountEndDate.split("T")[0]
+        : "",
+    });
+
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (productId) => {
@@ -236,115 +249,160 @@ const Products = () => {
     if (!imagePath) return "";
     if (imagePath.startsWith("http")) return imagePath;
     // Remove any leading slashes and ensure proper path construction
-    const cleanPath = imagePath.replace(/^\/+/, '');
+    const cleanPath = imagePath.replace(/^\/+/, "");
     return `${API_URL}/${cleanPath}`;
   };
 
+  const filteredProducts =
+  selectedCategory === "All"
+    ? products
+    : products.filter(
+        (product) => product.category === selectedCategory
+      );
+
+
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen pb-20 md:pb-6">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-        <h1 className="text-2xl md:text-3xl font-bold text-black-800">
-          Products
-        </h1>
-        <button
-          onClick={() => {
-            setFormData({
-              name: "",
-              description: "",
-              price: "",
-              // category: 'milk',
-              category: "shop all",
-              stock: "",
-              unit: "",
-              images: [],
-              imagePreviews: [],
-              discount: 0,
-              isDiscountActive: false,
-              discountStartDate: "",
-              discountEndDate: "",
-              offerPrice: "",
-              offerStartDate: "",
-              offerEndDate: "",
-              isOfferActive: false,
-            });
-            setIsModalOpen(true);
-          }}
-          // className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors duration-200 w-full md:w-auto"
-          className="bg-red-600 text-white px-4 py-2 rounded-md transition-colors duration-200 w-full md:w-auto"
-        >
-          Add Product
-        </button>
-      </div>
+     <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+  <h1 className="text-2xl md:text-3xl font-bold text-black-800">
+    Products
+  </h1>
+
+  <div className="flex gap-3 items-center">
+    {/* CATEGORY FILTER */}
+    <select
+      value={selectedCategory}
+      onChange={(e) => setSelectedCategory(e.target.value)}
+      className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+    >
+      <option value="All">All Categories</option>
+      {CATEGORIES.map((cat) => (
+        <option key={cat} value={cat}>
+          {cat}
+        </option>
+      ))}
+    </select>
+
+    {/* ADD PRODUCT */}
+    <button
+      onClick={() => {
+        setFormData({
+          name: "",
+          description: "",
+          category: "Shop all",
+          prices: [
+            { weight: "250g", price: "", stock: "" },
+            { weight: "500g", price: "", stock: "" },
+            { weight: "1kg", price: "", stock: "" },
+          ],
+          images: [],
+          imagePreviews: [],
+          discount: 0,
+          isDiscountActive: false,
+          discountStartDate: "",
+          discountEndDate: "",
+        });
+        setIsModalOpen(true);
+      }}
+      className="bg-red-600 text-white px-4 py-2 rounded-md transition-colors duration-200"
+    >
+      Add Product
+    </button>
+  </div>
+</div>
+
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
-        {products.map((product) => (
-          <div
-            key={product._id}
-            className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden flex flex-col"
-          >
-            {/* Product Image */}
-            <div className="w-full h-32 sm:h-40 md:h-48 relative group overflow-hidden">
-              {product.isOfferActive && (
-                <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-bold">
-                  {calculateDiscount(product.price, product.offerPrice)}% OFF
-                </div>
-              )}
-              {product.images && product.images.length > 0 ? (
-                <div className="relative h-48">
-                  <img
-                    src={getImageUrl(product.images[0])}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
-                  {product.images.length > 1 && (
-                    <div className="absolute bottom-0 right-0 p-2 flex gap-2">
-                      {product.images.slice(1).map((image, index) => (
-                        <img
-                          key={index}
-                          src={getImageUrl(image)}
-                          alt={`${product.name} ${index + 2}`}
-                          className="w-12 h-12 object-cover rounded-lg border-2 border-white"
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
-                  <span className="text-gray-400">No image available</span>
-                </div>
-              )}
+        {filteredProducts.map((product) => (
+  <div
+    key={product._id}
+    className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 flex flex-col overflow-hidden"
+  >
+    {/* IMAGE */}
+    <div className="relative h-44 md:h-52 bg-gray-50 overflow-hidden">
+      {product.images?.length > 0 ? (
+        <img
+          src={getImageUrl(product.images[0])}
+          alt={product.name}
+          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+        />
+      ) : (
+        <div className="flex items-center justify-center h-full text-gray-400">
+          No Image
+        </div>
+      )}
+
+      {product.discount > 0 && (
+        <span className="absolute top-2 right-2 bg-red-600 text-white text-xs px-3 py-1 rounded-full font-semibold shadow">
+          {product.discount}% OFF
+        </span>
+      )}
+    </div>
+
+    {/* CONTENT */}
+    <div className="p-4 flex flex-col flex-1">
+      {/* NAME */}
+      <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">
+        {product.name}
+      </h3>
+
+      {/* CATEGORY */}
+      <p className="text-xs text-gray-500 mb-2">
+        Category: {product.category}
+      </p>
+
+      {/* DESCRIPTION */}
+      <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+        {product.description}
+      </p>
+
+      {/* PRICE TABLE */}
+      <div className="bg-gray-50 rounded-lg p-3 mb-4">
+        <p className="text-xs font-semibold text-gray-700 mb-2">
+          Prices & Stock
+        </p>
+
+        <div className="space-y-1">
+          {product.prices.map((p) => (
+            <div
+              key={p.weight}
+              className="flex justify-between items-center text-xs text-gray-700"
+            >
+              <span className="font-medium">{p.weight}</span>
+              <span>₹{p.price}</span>
+              <span
+                className={`text-[11px] font-medium ${
+                  p.stock > 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                Stock: {p.stock}
+              </span>
             </div>
-            <div className="p-1">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                <p className="text-xs font-semibold text-gray-800">
-                  {product.name}
-                </p>
-                <p className="text-[10px] text-gray-600">{product.unit}</p>
-              </div>
-              <div className="mt-0.5 flex justify-between items-center">
-                <span className="text-sm font-bold text-gray-900">
-                  ₹{product.price.toLocaleString()}
-                </span>
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => handleEdit(product)}
-                    className="text-indigo-600 hover:text-indigo-900 text-[10px]"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product._id)}
-                    className="text-red-600 hover:text-red-900 text-[10px]"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      {/* ACTION BUTTONS */}
+      <div className="mt-auto flex gap-2">
+        <button
+          onClick={() => handleEdit(product)}
+          className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-blue-700 transition"
+        >
+          Edit
+        </button>
+
+        <button
+          onClick={() => handleDelete(product._id)}
+          className="flex-1 bg-red-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-red-700 transition"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+))}
+
       </div>
 
       {/* Add Product Modal */}
@@ -407,20 +465,7 @@ const Products = () => {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Price
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) =>
-                      setFormData({ ...formData, price: e.target.value })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
+               
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Category
@@ -441,38 +486,54 @@ const Products = () => {
                     ))}
                   </select>
                 </div>
+
+                {/* Prices & Stock per weight */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Stock
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Prices & Stock (per weight)
                   </label>
-                  <input
-                    type="number"
-                    value={formData.stock}
-                    onChange={(e) =>
-                      setFormData({ ...formData, stock: e.target.value })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Unit
-                  </label>
-                  <select
-                    value={formData.unit}
-                    onChange={(e) =>
-                      setFormData({ ...formData, unit: e.target.value })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  >
-                    <option value="">Select Unit</option>
-                    <option value="100g">100g</option>
-                    <option value="250g">250g</option>
-                    <option value="500g">500g</option>
-                    <option value="1kg">1 Kilogram (1kg)</option>
-                  </select>
+
+                  <div className="space-y-3">
+                    {formData.prices.map((item, index) => (
+                      <div
+                        key={item.weight}
+                        className="grid grid-cols-3 gap-3 items-center"
+                      >
+                        {/* Weight */}
+                        <span className="text-sm font-semibold text-gray-700">
+                          {item.weight}
+                        </span>
+
+                        {/* Price */}
+                        <input
+                          type="number"
+                          placeholder="Price"
+                          value={item.price}
+                          onChange={(e) => {
+                            const updated = [...formData.prices];
+                            updated[index].price = e.target.value;
+                            setFormData({ ...formData, prices: updated });
+                          }}
+                          className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          required
+                        />
+
+                        {/* Stock */}
+                        <input
+                          type="number"
+                          placeholder="Stock"
+                          value={item.stock}
+                          onChange={(e) => {
+                            const updated = [...formData.prices];
+                            updated[index].stock = e.target.value;
+                            setFormData({ ...formData, prices: updated });
+                          }}
+                          className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          required
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -583,15 +644,6 @@ const Products = () => {
                       />
                     </div>
 
-                    <div className="bg-yellow-50 p-4 rounded-md">
-                      <p className="text-sm text-yellow-700">
-                        Discounted Price: ₹
-                        {calculateDiscountedPrice(
-                          formData.price,
-                          formData.discount
-                        ).toFixed(2)}
-                      </p>
-                    </div>
                   </>
                 )}
 

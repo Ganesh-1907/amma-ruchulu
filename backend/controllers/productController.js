@@ -1,16 +1,29 @@
 const Product = require('../models/Product');
 const path = require('path');
 const fs = require('fs').promises;
+const { getFinalPrice } = require('../utils/priceCalculator');
+
 
 // Get all products
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
-    res.json(products);
+
+    const result = products.map(product => {
+      const obj = product.toObject();
+      obj.prices = obj.prices.map(p => ({
+        ...p,
+        finalPrice: getFinalPrice(p.price, product)
+      }));
+      return obj;
+    });
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: 'Error fetching products' });
   }
 };
+
 
 // Create new product
 exports.createProduct = async (req, res) => {
@@ -18,47 +31,52 @@ exports.createProduct = async (req, res) => {
     const {
       name,
       description,
-      price,
       category,
-      stock,
-      unit,
+      prices,
       discount,
       isDiscountActive,
       discountStartDate,
       discountEndDate,
-      offerPrice,
-      offerStartDate,
-      offerEndDate,
-      isOfferActive
+      expiryDays
     } = req.body;
 
-    // Handle image uploads
+    const parsedPrices =
+      typeof prices === 'string' ? JSON.parse(prices) : prices;
+
+    // 🔴 REQUIRED WEIGHT VALIDATION
+    const requiredWeights = ['250g', '500g', '1kg'];
+    const receivedWeights = parsedPrices.map(p => p.weight);
+
+    for (const w of requiredWeights) {
+      if (!receivedWeights.includes(w)) {
+        return res.status(400).json({ error: `Missing price for ${w}` });
+      }
+    }
+
     const images = req.files ? req.files.map(file => file.path) : [];
 
     const product = new Product({
       name,
       description,
-      price,
       category,
-      stock,
-      unit,
       images,
+      prices: parsedPrices,
       discount,
       isDiscountActive,
       discountStartDate,
       discountEndDate,
-      offerPrice,
-      offerStartDate,
-      offerEndDate,
-      isOfferActive
+      expiryDays
     });
 
     await product.save();
     res.status(201).json(product);
+
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
+
+
 
 // Update product
 exports.updateProduct = async (req, res) => {
@@ -66,26 +84,29 @@ exports.updateProduct = async (req, res) => {
     const productId = req.params.id;
     const updateData = { ...req.body };
 
-    // Handle new image uploads
+    if (updateData.prices) {
+      updateData.prices =
+        typeof updateData.prices === 'string'
+          ? JSON.parse(updateData.prices)
+          : updateData.prices;
+    }
+
     if (req.files && req.files.length > 0) {
       const newImages = req.files.map(file => file.path);
-      
-      // Get existing product to handle old images
+
       const existingProduct = await Product.findById(productId);
       if (existingProduct) {
-        // Delete old images that are not in the new set
-        const oldImages = existingProduct.images || [];
-        for (const oldImage of oldImages) {
+        for (const oldImage of existingProduct.images) {
           if (!newImages.includes(oldImage)) {
             try {
               await fs.unlink(oldImage);
             } catch (err) {
-              console.error('Error deleting old image:', err);
+              console.error('Image delete error:', err);
             }
           }
         }
       }
-      
+
       updateData.images = newImages;
     }
 
@@ -100,10 +121,13 @@ exports.updateProduct = async (req, res) => {
     }
 
     res.json(product);
+
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
+
+
 
 // ... existing code ...
 
@@ -143,11 +167,20 @@ exports.getProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    res.json(product);
+
+    const obj = product.toObject();
+    obj.prices = obj.prices.map(p => ({
+      ...p,
+      finalPrice: getFinalPrice(p.price, product)
+    }));
+
+    res.json(obj);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+
 
 // Get products by category
 exports.getProductsByCategory = async (req, res) => {
