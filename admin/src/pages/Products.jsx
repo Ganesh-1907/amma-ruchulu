@@ -17,7 +17,7 @@ const Products = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    category: "Shop all",
+    category: "CATEGORIES[0]",
 
     prices: [
       { weight: "250g", price: "", stock: "" },
